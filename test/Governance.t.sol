@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
@@ -36,11 +36,11 @@ contract GovernanceTest is Test {
         // Define the owner address
         owner = vm.addr(1);
 
-        vm.prank(owner);
+        switchSigner(owner);
+
         // Deploy the token implementation
         peerToken = new PeerToken(owner);
 
-        vm.prank(owner);
         governance = new Governance(address(peerToken));
 
         Protocol implementation = new Protocol();
@@ -66,7 +66,7 @@ contract GovernanceTest is Test {
         B = mkaddr("B");
         C = mkaddr("C");
         D = mkaddr("D");
-        switchSigner(owner);
+
         peerToken.mint(owner, 10000e18);
         peerToken.mint(A, 10000e18);
         peerToken.mint(B, 10000e18);

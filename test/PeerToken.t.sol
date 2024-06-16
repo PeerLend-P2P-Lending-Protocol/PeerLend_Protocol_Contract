@@ -45,17 +45,16 @@ contract PeerTokenTest is Test {
     function test_Name() public {
         switchSigner(A);
         string memory tokenName = token.name();
-        assertEq(tokenName, "PEER Token");
+        assertEq(tokenName, "$PEER");
     }
 
     function test_decimal() public {
-        switchSigner(A);
         uint8 expectedDecimals = 18;
         uint8 decimals = token.decimals();
         assertEq(decimals, expectedDecimals);
     }
 
-    function test_Symbol() public view {
+    function test_Symbol() public {
         string memory expectedSymbol = "PEER";
         string memory symbol = token.symbol();
         assertEq(symbol, expectedSymbol);
