@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {Validator} from "./Libraries/Validator.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {PeerToken} from "./PeerToken.sol";
 import "./Libraries/Constant.sol";
@@ -43,8 +44,11 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     address[] private s_loanableToken;
     /// @dev Collection of all all the resquest;
     Request[] private s_requests;
+
+    address [] allAddress;
     /// @dev request id;
     uint96 private requestId;
+    uint96 private offerId;
 
     // mapping(address user => uint256 amount) private amountRequested;
     mapping(address lender => uint256 amount) private amountUserIsLending;
@@ -116,21 +120,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         OfferStatus offerStatus;
     }
 
-    ///////////////////
-    ///  MODIFIERS ///
-    /////////////////
-    modifier moreThanZero(uint256 _amount) {
-        if (_amount <= 0) {
-            revert Protocol__MustBeMoreThanZero();
-        }
-        _;
-    }
-    modifier isTokenAllowed(address _token) {
-        if (s_priceFeeds[_token] == address(0)) {
-            revert Protocol__TokenNotAllowed();
-        }
-        _;
-    }
+
 
     //////////////////
     /// FUNCTIONS ///
@@ -143,13 +133,12 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint256 _amountOfCollateral
     )
         external
-        moreThanZero(_amountOfCollateral)
-        isTokenAllowed(_tokenCollateralAddress)
     {
+        Validator._moreThanZero(_amountOfCollateral);
+        Validator._isTokenAllowed(_tokenCollateralAddress,s_priceFeeds);
         checkIsVerified(msg.sender);
-        s_addressToCollateralDeposited[msg.sender][
-            _tokenCollateralAddress
-        ] += _amountOfCollateral;
+        s_addressToCollateralDeposited[msg.sender][_tokenCollateralAddress] += _amountOfCollateral;
+        allAddress.push(msg.sender);
         emit CollateralDeposited(
             msg.sender,
             _tokenCollateralAddress,
@@ -180,7 +169,10 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint8 _interest,
         uint256 _returnDate,
         address _loanCurrency
-    ) external moreThanZero(_amount) {
+    ) external 
+     {
+        Validator._moreThanZero(_amount);
+
         if (!s_isLoanable[_loanCurrency]) {
             revert Protocol__TokenNotLoanable();
         }
@@ -199,8 +191,8 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         ) {
             revert Protocol__InsufficientCollateral();
         }
-
-        requestId++;
+// 
+        requestId = requestId + 1;
         Request storage _newRequest = request[msg.sender][requestId];
         _newRequest.requestId = requestId;
         _newRequest.author = msg.sender;
@@ -224,7 +216,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         checkIsVerified(msg.sender);
         string memory _email = addressToUser[msg.sender].email;
 
-        _sendMailRepayLoan(_email);
+        // _sendMailRepayLoan(_email);
         Request storage _foundRequest = request[msg.sender][_requestId];
         uint256 _repaymentValueUsd = getUsdValue(
             _foundRequest.loanRequestAddr,
@@ -272,11 +264,15 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint8 _interest,
         uint256 _returnedDate,
         address _tokenAddress
-    ) external moreThanZero(_amount) moreThanZero(_interest) {
+    ) external
+     {
+        Validator._moreThanZero(_amount);
+        Validator._moreThanZero(_interest);
+
         checkIsVerified(msg.sender);
         string memory _email = addressToUser[msg.sender].email;
 
-        _sendEmailOfferRequest(_email, _amount, _interest, _returnedDate);
+        // _sendEmailOfferRequest(_email, _amount, _interest, _returnedDate);
         Request storage _foundRequest = request[_borrower][_requestId];
         if (_foundRequest.status != Status.OPEN)
             revert Protocol__RequestNotOpen();
@@ -286,9 +282,9 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
             revert Protocol__InvalidToken();
 
         IERC20(_tokenAddress).approve(address(this), _amount);
-
+        offerId = offerId +1;
         Offer memory _offer;
-        _offer.offerId = _offer.offerId + 1;
+        _offer.offerId = offerId;
         _offer.author = msg.sender;
         _offer.interest = _interest;
         _offer.tokenAddr = _tokenAddress;
@@ -380,7 +376,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     /// @param _foundOffer the offer being sent
     function _handleRejectedOffer(Offer storage _foundOffer) internal {
         string memory _email = addressToUser[msg.sender].email;
-        _sendMailRejectOffer(_email);
+        // _sendMailRejectOffer(_email);
         _foundOffer.offerStatus = OfferStatus.REJECTED;
     }
 
@@ -397,7 +393,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         Request storage _foundRequest = request[_borrower][_requestId];
         string memory _email = addressToUser[msg.sender].email;
 
-        _sendMailServiceLoan(_email);
+        // _sendMailServiceLoan(_email);
         if (_foundRequest.status != Status.OPEN)
             revert Protocol__RequestNotOpen();
         if (_foundRequest.loanRequestAddr != _tokenAddress)
@@ -458,7 +454,10 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     function withdrawCollateral(
         address _tokenCollateralAddress,
         uint256 _amount
-    ) external moreThanZero(_amount) isTokenAllowed(_tokenCollateralAddress) {
+    ) external 
+    {
+     Validator._moreThanZero(_amount);   
+     Validator._isTokenAllowed(_tokenCollateralAddress, s_priceFeeds);
         checkIsVerified(msg.sender);
         uint256 depositedAmount = s_addressToCollateralDeposited[msg.sender][
             _tokenCollateralAddress
@@ -695,7 +694,42 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         _score = addressToUser[_user].gitCoinPoint;
     }
 
-    /// @notice Checks the health Factor which is a way to check if the user has enough collateral to mint
+
+    function getAllRequest() external view returns (Request[] memory) {
+    if (requestId < 1) revert Protocol__InvalidId();
+    if (allAddress.length < 1) revert Protocol__InvalidId();
+
+    uint totalRequests = 0;
+
+    // Count the total number of requests
+    for (uint i = 0; i < allAddress.length; i++) {
+        for (uint96 j = 0; j <= requestId; j++) {
+            if (request[allAddress[i]][j].author != address(0)) {
+                totalRequests++;
+            }
+        }
+    }
+
+    // Initialize the array with the total number of requests
+    Request[] memory _userRequests = new Request[](totalRequests);
+    uint index = 0;
+
+    // Populate the array with all requests
+    for (uint i = 0; i < allAddress.length; i++) {
+        for (uint96 j = 0; j <= requestId; j++) {
+            if (request[allAddress[i]][j].author != address(0)) {
+                _userRequests[index] = request[allAddress[i]][j];
+                index++;
+            }
+        }
+    }
+
+    return _userRequests;
+}
+
+        
+        
+/// @notice Checks the health Factor which is a way to check if the user has enough collateral to mint
     /// @param _user a parameter for the address to check
     /// @return uint256 returns the health factor which is supoose to be >= 1
     function _healthFactor(address _user) private view returns (uint256) {
@@ -760,13 +794,12 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     /// @param _borrower the user who is trying to borrow
     /// @param _requestId the id of the request you are trying to get the offers from
     /// @return {Offer[] memory} the collection of offers made
-    function getAllOfferForUser(
-        address _borrower,
-        uint96 _requestId
-    ) external view returns (Offer[] memory) {
+    function getAllOfferForUser(address _borrower, uint96 _requestId) external view returns (Offer[] memory) {
         Request storage _foundRequest = request[_borrower][_requestId];
         return _foundRequest.offer;
     }
+
+
 
     /// @dev gets the amount of collateral auser has deposited
     /// @param _sender the user who has the collateral
@@ -779,11 +812,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         return s_addressToCollateralDeposited[_sender][_tokenAddr];
     }
 
-    /// @dev gets all the requests from the protocol
-    /// @return {Request[] memory} all requests created
-    function getAllRequest() external view returns (Request[] memory) {
-        return s_requests;
-    }
+
 
     function getRequestById(
         uint96 _requestId
