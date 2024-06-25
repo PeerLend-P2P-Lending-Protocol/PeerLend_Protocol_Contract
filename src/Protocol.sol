@@ -272,7 +272,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         checkIsVerified(msg.sender);
         string memory _email = addressToUser[msg.sender].email;
 
-        // _sendEmailOfferRequest(_email, _amount, _interest, _returnedDate);
+        _sendEmailOfferRequest(_email, _amount, _interest, _returnedDate);
         Request storage _foundRequest = request[_borrower][_requestId];
         if (_foundRequest.status != Status.OPEN)
             revert Protocol__RequestNotOpen();
@@ -581,19 +581,29 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     }
   
 
+
+
+    /////////////////////////////////////////////////////
+    ///                                              ///
+    ///   CHAINLINK NODE ADAPTER EMAIL API TRIGGER  ////
+    ///                                             ///
+    ///////////////////////////////////////////////////
+
+
+    
    function _sendEmailOfferRequest(
         string memory _userEmail,
         uint256 _amount,
         uint8 _interest,
         uint256 _returnDate
     ) public {
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
+        Chainlink.Request memory req = _buildOperatorRequest(jobId, this.fulfill.selector);
         // Define the JSON payload
-        string memory payload = string(abi.encodePacked(
+        string memory payload = string(abi.encode(
             '{"userEmail":"', _userEmail,
-            '","amount":', uint2str(_amount),
-            ',"interest":', uint2str(_interest),
-            ',"returnDate":"', uint2str(_returnDate),
+            '","amount":', _amount,
+            ',"interest":', _interest,
+            ',"returnDate":"', _returnDate,
             '"}'
         ));
         // Define the request parameters
@@ -909,12 +919,11 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
             s_collateralToken.push(_tokens[i]);
         }
         s_PEER = PeerToken(_peerAddress);
-         _setChainlinkToken(0xE4aB69C077896252FAFBD49EFD26B5D171A32410);
-        setOracleAddress(0xa57f0cEd49bB1ed7327f950B12a8419cFD01855f);
+         _setChainlinkToken(0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8);
+        setOracleAddress(0x14bc7F6Da6cA3E072793c185e01a76E62341CC61);
         setJobId("a8356f48569c434eaa4ac5fcb4db5cc0");
         setFeeInHundredthsOfLink(0); 
     }
-
     /// @dev Assist with upgradable proxy
     /// @param {address} a parameter just like in doxygen (must be followed by parameter name)
     function _authorizeUpgrade(address) internal override onlyOwner {}
