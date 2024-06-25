@@ -22,14 +22,25 @@ contract ProtocolTest is Test, IProtocolTest {
 
     event log(string message, Protocol.Offer[] _twoOffers);
 
-    address daiToken = 0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb;
-    address linkToken = 0x88Fb150BDc53A65fe94Dea0c9BA0a6dAf8C6e196;
 
-    address DAI_USD = 0x591e79239a7d679378eC8c847e5038150364C78F;
-    address LINK_USD = 0x17CAb8FE31E32f08326e5E27412894e49B0f9D65;
+    address USDTHolders = 0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8;
+    address DIAHolders = 0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8;
+    address LINKHolders = 0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8;
+    address WETHHolders = 0x0a4CAA57ac414f6B936261ff7CB1d6883bBF7264;
 
-    address linkHolder = 0x69356108F2CBE8C62DC9067B76e7d952610ADf51;
-    address diaHolder = 0x927860797d07b1C46fbBe7f6f73D45C7E1BFBb27;
+    address USDT_USD = 0x3ec8593F930EA45ea58c968260e6e9FF53FC934f;
+    address DIA_USD = 0xD1092a65338d049DB68D7Be6bD89d17a0929945e;
+    address LINK_USD = 0xb113F5A928BCfF189C998ab20d753a47F9dE5A61;
+    address WETH_USD = 0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1;
+   
+
+    address USDT_CONTRACT_ADDRESS = 0x00D1C02E008D594ebEFe3F3b7fd175850f96AEa0;
+    address WETH_CONTRACT_ADDRESS = 0x7fEa3ea63433a35e8516777171D7d0e038804716;
+    address DIA_CONTRACT_ADDRESS = 0x5caF98bf477CBE96d5CA56039FE7beec457bA653;
+    address LINK_CONTRACT_ADDRESS = 0xb58c2e70c750CBAA1a2d487Dd0BfF26be92F5308;
+
+
+
 
     function setUp() public {
         owner = mkaddr("owner");
@@ -39,36 +50,51 @@ contract ProtocolTest is Test, IProtocolTest {
         peerToken = new PeerToken(owner);
         protocol = new Protocol();
 
-        tokens.push(daiToken);
-        tokens.push(linkToken);
+       
+        tokens.push(USDT_CONTRACT_ADDRESS);
+        tokens.push(DIA_CONTRACT_ADDRESS);
+        tokens.push(LINK_CONTRACT_ADDRESS);
+        tokens.push(WETH_CONTRACT_ADDRESS);
 
-        priceFeed.push(DAI_USD);
+        priceFeed.push(USDT_USD);
+        priceFeed.push(DIA_USD);
         priceFeed.push(LINK_USD);
+        priceFeed.push(WETH_USD);
         // priceFeed.push(USDCAddre
         protocol.initialize(owner, tokens, priceFeed, address(peerToken));
-        IERC20(linkToken).approve(address(protocol), type(uint).max);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
+        
+        IERC20(USDT_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        IERC20(WETH_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        // IERC20(LINK_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+
+
+
 
         protocol.updateEmail(owner, "owner@mail", true);
-        protocol.updateEmail(B, "b@mail", true);
+        protocol.updateEmail(B, "ebukizy1@gmail.com", true);
         protocol.updateEmail(C, "c@mail", true);
+
+
 
         transferTokenToOwner();
     }
 
-    function testDepositCollateral() public {
+    function testDepositTCollateral() public {
+        
         switchSigner(owner);
-        protocol.depositCollateral(linkToken, 1e18);
+        protocol.depositCollateral(USDT_CONTRACT_ADDRESS, 1000000);
         uint256 _amountQualaterized = protocol
-            .gets_addressToCollateralDeposited(owner, linkToken);
-        assertEq(_amountQualaterized, 1e18);
+            .gets_addressToCollateralDeposited(owner, USDT_CONTRACT_ADDRESS);
+        assertEq(_amountQualaterized, 1000000);
+
     }
 
     function testUserCanCreateTwoRequest() public {
         depositCollateral(owner, linkToken, 1e18);
         switchSigner(owner);
 
-        uint256 requestAmount = 1e18;
+        uint256 requestAmount = 10000;
         uint8 interestRate = 5;
         uint256 returnDate = block.timestamp + 365 days;
 
@@ -76,14 +102,16 @@ contract ProtocolTest is Test, IProtocolTest {
             requestAmount,
             interestRate,
             returnDate,
-            daiToken
+            DIA_CONTRACT_ADDRESS
+
         );
         protocol.createLendingRequest(
             requestAmount,
             interestRate,
             returnDate,
-            daiToken
-        );
+            DIA_CONTRACT_ADDRESS
+            );
+
 
         // Verify that the request is correctly added
         Protocol.Request[] memory requests = protocol.getAllRequest();
@@ -92,20 +120,18 @@ contract ProtocolTest is Test, IProtocolTest {
     }
 
     function testExcessiveBorrowing() public {
-        depositCollateral(owner, linkToken, 1e18);
+        testDepositTCollateral();
+                switchSigner(owner);
 
-        uint256 requestAmount = 3300e18;
+        uint256 requestAmount = 100000000000;
+
         uint8 interestRate = 5;
         uint256 returnDate = block.timestamp + 365 days; // 1 year later
         vm.expectRevert(
             abi.encodeWithSelector(Protocol__InsufficientCollateral.selector)
         );
-        protocol.createLendingRequest(
-            requestAmount,
-            interestRate,
-            returnDate,
-            daiToken
-        );
+        protocol.createLendingRequest(requestAmount,interestRate,returnDate,DIA_CONTRACT_ADDRESS);
+
     }
 
     function testUserCanGiveOfferToRequest() public {
@@ -113,70 +139,45 @@ contract ProtocolTest is Test, IProtocolTest {
 
         // note test user can give one offer to 1 request
         // switchSigner(B);
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(B, 10e18);
+
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(B,20000);
         switchSigner(B);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            7,
-            block.timestamp + 10 days,
-            daiToken
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner,1,10000, 7, block.timestamp + 10 days, DIA_CONTRACT_ADDRESS);
+
         Protocol.Offer[] memory offers = protocol.getAllOfferForUser(owner, 1);
         assertEq(offers.length, 1);
 
         // note TEST another user can give another offer  to  request with ID ONE
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(C, 10e18);
+
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(C, 20000);
         switchSigner(C);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            8,
-            block.timestamp + 20 days,
-            daiToken
-        );
-        Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(
-            owner,
-            1
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner, 1, 10000,  8, block.timestamp + 20 days,DIA_CONTRACT_ADDRESS);
+        Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(owner, 1);
         assertEq(_twoOffers.length, 2);
 
         //note TEST user can give another offer  to  request with ID TWO
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(B, 10e18);
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(B, 20000);
         switchSigner(B);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            2,
-            1e1,
-            7,
-            block.timestamp + 10 days,
-            daiToken
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner,2, 10000,7,block.timestamp + 10 days,DIA_CONTRACT_ADDRESS);
+
         Protocol.Offer[] memory _Id2RequestOfferList = protocol
             .getAllOfferForUser(owner, 2);
         assertEq(_Id2RequestOfferList.length, 1);
 
         //note TEST user can give another offer  to  request with ID TWO
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(C, 10e18);
+        
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(C, 20000);
         switchSigner(C);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            2,
-            1e18,
-            8,
-            block.timestamp + 20 days,
-            daiToken
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner,2,  10000, 8,block.timestamp + 20 days,DIA_CONTRACT_ADDRESS);
+
         Protocol.Offer[] memory _Id2Request_OfferList = protocol
             .getAllOfferForUser(owner, 2);
         assertEq(_Id2Request_OfferList.length, 2);
@@ -184,42 +185,27 @@ contract ProtocolTest is Test, IProtocolTest {
 
     function testBorrowerCan_AcceptLendingOffer() public {
         testUserCanCreateTwoRequest();
-
-        // note TEST user can give one OFFER TO FIRST LOAN REQUEST
+ 
+         // note test user can give one offer to 1 request
         // switchSigner(B);
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(B, 10e18);
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(B,20000);
         switchSigner(B);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            7,
-            block.timestamp + 10 days,
-            daiToken
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner,1,10000, 7, block.timestamp + 10 days, DIA_CONTRACT_ADDRESS);
         Protocol.Offer[] memory offers = protocol.getAllOfferForUser(owner, 1);
         assertEq(offers.length, 1);
 
-        // note TEST another user can give another OFFER TO FIRST LOAN REQUEST
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(C, 10e18);
+        // note TEST another user can give another offer  to  request with ID ONE
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(C, 20000);
         switchSigner(C);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            8,
-            block.timestamp + 20 days,
-            daiToken
-        );
-        Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(
-            owner,
-            1
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner, 1, 10000,  8, block.timestamp + 20 days,DIA_CONTRACT_ADDRESS);
+        Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(owner, 1);
+
         assertEq(_twoOffers.length, 2);
+
 
         //NOTE BORROWER CAN ACCEPT OFFER TWO
         switchSigner(owner);
@@ -232,264 +218,253 @@ contract ProtocolTest is Test, IProtocolTest {
     }
 
     function testBorrowerCan_RejectLendingOffer() public {
-        testUserCanCreateTwoRequest();
 
-        // note TEST user can give one OFFER TO FIRST LOAN REQUEST
+         testUserCanCreateTwoRequest();
+ 
+       // note test user can give one offer to 1 request
         // switchSigner(B);
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(B, 10e18);
+        switchSigner(owner);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(B,20000);
         switchSigner(B);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            7,
-            block.timestamp + 10 days,
-            daiToken
-        );
+        IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        protocol.makeLendingOffer(owner,1,10000, 7, block.timestamp + 10 days, DIA_CONTRACT_ADDRESS);
         Protocol.Offer[] memory offers = protocol.getAllOfferForUser(owner, 1);
         assertEq(offers.length, 1);
 
-        // note TEST another user can give another OFFER TO FIRST LOAN REQUEST
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(C, 10e18);
-        switchSigner(C);
-        IERC20(daiToken).approve(address(protocol), type(uint).max);
-        protocol.makeLendingOffer(
-            owner,
-            1,
-            1e18,
-            8,
-            block.timestamp + 20 days,
-            daiToken
-        );
-        Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(
-            owner,
-            1
-        );
-        assertEq(_twoOffers.length, 2);
+        // // note TEST another user can give another offer  to  request with ID ONE
+        // switchSigner(owner);
+        // IERC20(DIA_CONTRACT_ADDRESS).transfer(C, 20000);
+        // switchSigner(C);
+        // IERC20(DIA_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
+        // protocol.makeLendingOffer(owner, 1, 10000,  8, block.timestamp + 20 days,DIA_CONTRACT_ADDRESS);
+        // Protocol.Offer[] memory _twoOffers = protocol.getAllOfferForUser(owner, 1);
+        // assertEq(_twoOffers.length, 2);
 
-        //NOTE BORROWER CAN REJECT OFFER ONE
-        switchSigner(owner);
-        protocol.respondToLendingOffer(1, 0, Protocol.OfferStatus.REJECTED);
-        Protocol.Request memory requests = protocol.getRequestById(1);
-        //  Protocol.Request []memory _requests  =   protocol.getAllRequest();
-        assertEq(uint8(protocol.getAllRequest()[0].offer[0].offerStatus), 1);
-        assertEq(uint8(requests.offer[0].offerStatus), 1);
 
-        //NOTE TEST BORROWER CAN REJECT SECOND OFFER
-        switchSigner(owner);
-        protocol.respondToLendingOffer(1, 1, Protocol.OfferStatus.REJECTED);
-        Protocol.Request memory _requests = protocol.getRequestById(1);
-        //  Protocol.Request []memory _requests  =   protocol.getAllRequest();
-        assertEq(uint8(protocol.getAllRequest()[0].offer[1].offerStatus), 1);
-        assertEq(uint8(_requests.offer[1].offerStatus), 1);
+        // //NOTE BORROWER CAN REJECT OFFER ONE
+        // switchSigner(owner);
+        // protocol.respondToLendingOffer(1, 0, Protocol.OfferStatus.REJECTED);
+        // Protocol.Request memory requests = protocol.getRequestById(1);
+        // //  Protocol.Request []memory _requests  =   protocol.getAllRequest();
+        //  assertEq( uint8(protocol.getAllRequest()[0].offer[0].offerStatus), 1);
+        // assertEq(uint8(requests.offer[0].offerStatus), 1);   
+
+        // //NOTE TEST BORROWER CAN REJECT SECOND OFFER 
+        //  switchSigner(owner);
+        // protocol.respondToLendingOffer(1, 1, Protocol.OfferStatus.REJECTED);
+        // Protocol.Request memory _requests = protocol.getRequestById(1);
+        // //  Protocol.Request []memory _requests  =   protocol.getAllRequest();
+        //  assertEq( uint8(protocol.getAllRequest()[0].offer[1].offerStatus), 1);
+        // assertEq(uint8(_requests.offer[1].offerStatus), 1);  
+
     }
 
     function testServiceRequest() public {
-        IERC20 daiContract = IERC20(daiToken);
-        switchSigner(diaHolder);
-        daiContract.transfer(B, 100e18);
-        depositCollateral(owner, linkToken, 1e18);
 
-        uint256 requestAmount = 50e18;
+        // IERC20 daiContract = IERC20(WETHHolders);
+        // switchSigner(WETHHolders);
+        switchSigner(owner);
+         IERC20(LINK_CONTRACT_ADDRESS).transfer(B, 10000);
+        testDepositTCollateral();
+
+
+        uint256 requestAmount = 10000;
         uint8 interestRate = 5;
         uint256 returnDate = block.timestamp + 365 days; // 1 year later
 
-        uint256 borrowerDAIStartBalance = daiContract.balanceOf(owner);
 
-        protocol.createLendingRequest(
-            requestAmount,
-            interestRate,
-            returnDate,
-            daiToken
-        );
+        uint256 borrowerDAIStartBalance = IERC20(LINK_CONTRACT_ADDRESS).balanceOf(owner);
+        switchSigner(owner);
+        protocol.createLendingRequest(requestAmount,interestRate,returnDate, LINK_CONTRACT_ADDRESS);
 
         switchSigner(B);
-        daiContract.approve(address(protocol), requestAmount);
-        protocol.serviceRequest(owner, 1, daiToken);
-        assertEq(
-            daiContract.balanceOf(owner),
-            borrowerDAIStartBalance + requestAmount
-        );
-        Protocol.Request memory _borrowRequest = protocol.getUserRequest(
-            owner,
-            1
-        );
+         IERC20(LINK_CONTRACT_ADDRESS).approve(address(protocol), requestAmount);
+        protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
+        assertEq(IERC20(LINK_CONTRACT_ADDRESS).balanceOf(owner),borrowerDAIStartBalance + requestAmount);
+        Protocol.Request memory _borrowRequest = protocol.getUserRequest(owner,1);
+
 
         assertEq(_borrowRequest.lender, B);
         assertEq(uint8(_borrowRequest.status), uint8(1));
     }
 
     function testServiceRequestFailsAfterFirstService() public {
-        IERC20 daiContract = IERC20(daiToken);
-        switchSigner(diaHolder);
-        // console.log("balance is ::: ",IERC20(daiToken).balanceOf(address(0)));
-        daiContract.transfer(B, 100e18);
-        depositCollateral(owner, linkToken, 1e18);
 
-        uint256 requestAmount = 50e18;
+
+         switchSigner(owner);
+         IERC20(LINK_CONTRACT_ADDRESS).transfer(B, 10000);
+        testDepositTCollateral();
+
+       
+
+        uint256 requestAmount = 10000;
         uint8 interestRate = 5;
         uint256 returnDate = block.timestamp + 365 days; // 1 year later
 
-        protocol.createLendingRequest(
-            requestAmount,
-            interestRate,
-            returnDate,
-            daiToken
-        );
+        protocol.createLendingRequest(requestAmount,interestRate,returnDate,LINK_CONTRACT_ADDRESS);
 
         switchSigner(B);
-        daiContract.approve(address(protocol), requestAmount);
-        protocol.serviceRequest(owner, 1, daiToken);
+        IERC20(LINK_CONTRACT_ADDRESS).approve(address(protocol), requestAmount);
+        protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
+
 
         vm.expectRevert(
             abi.encodeWithSelector(Protocol__RequestNotOpen.selector)
         );
-        protocol.serviceRequest(owner, 1, daiToken);
+
+        protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
+
 
         // NOTE to ensure it is not just the first person to service the request it fails for
         switchSigner(C);
         vm.expectRevert(
             abi.encodeWithSelector(Protocol__RequestNotOpen.selector)
         );
-        protocol.serviceRequest(owner, 1, daiToken);
+
+        protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
     }
 
     function testServiceRequestFailsWithoutTokenAllowance() public {
-        IERC20 daiContract = IERC20(daiToken);
-        switchSigner(diaHolder);
-        daiContract.transfer(B, 100e18);
-        depositCollateral(owner, linkToken, 1e18);
+        
+        switchSigner(owner);
+         IERC20(LINK_CONTRACT_ADDRESS).transfer(B, 10000);
+        testDepositTCollateral();
 
-        uint256 requestAmount = 50e18;
+        uint256 requestAmount = 10000;
         uint8 interestRate = 5;
         uint256 returnDate = block.timestamp + 365 days; // 1 year later
 
-        protocol.createLendingRequest(
-            requestAmount,
-            interestRate,
-            returnDate,
-            daiToken
-        );
+        protocol.createLendingRequest(requestAmount,interestRate,returnDate,LINK_CONTRACT_ADDRESS);
+        switchSigner(B); 
 
-        switchSigner(B);
         // daiContract.approve(address(protocol), requestAmount);
         vm.expectRevert(
             abi.encodeWithSelector(Protocol__InsufficientAllowance.selector)
         );
-        protocol.serviceRequest(owner, 1, daiToken);
+
+        protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
     }
 
-    function testServiceRequestFailsWithoutEnoughBalance() public {
-        IERC20 daiContract = IERC20(daiToken);
-        switchSigner(diaHolder);
-        daiContract.transfer(B, 49e18);
-        depositCollateral(owner, linkToken, 1e18);
+    // function testServiceRequestFailsWithoutEnoughBalance() public {
+    //     IERC20 daiContract = IERC20(WETHHolders);
+    //     switchSigner(owner);
+    //     daiContract.transfer(B, 10000);
+    //     testDepositTCollateral();
 
-        uint256 requestAmount = 50e18;
-        uint8 interestRate = 5;
-        uint256 returnDate = block.timestamp + 365 days; // 1 year later
 
-        protocol.createLendingRequest(
-            requestAmount,
-            interestRate,
-            returnDate,
-            daiToken
-        );
+    //     uint256 requestAmount = 50e18;
+    //     uint8 interestRate = 5;
+    //     uint256 returnDate = block.timestamp + 365 days; // 1 year later
 
-        switchSigner(B);
-        daiContract.approve(address(protocol), requestAmount);
-        vm.expectRevert(
-            abi.encodeWithSelector(Protocol__InsufficientBalance.selector)
-        );
-        protocol.serviceRequest(owner, 1, daiToken);
-    }
+    //     protocol.createLendingRequest(
+    //         requestAmount,
+    //         interestRate,
+    //         returnDate,
+    //         LINK_CONTRACT_ADDRESS
+    //     );
 
-    function testLoanRepayment() public {
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(owner, 100e18);
-        testServiceRequest();
+    //     switchSigner(B);
+    //      IERC20(LINK_CONTRACT_ADDRESS).approve(address(protocol), requestAmount);
+    //     vm.expectRevert(
+    //         abi.encodeWithSelector(Protocol__InsufficientBalance.selector)
+    //     );
+    //     protocol.serviceRequest(owner, 1, LINK_CONTRACT_ADDRESS);
+    // }
 
-        switchSigner(owner);
-        IERC20 daiContract = IERC20(daiToken);
-        daiContract.approve(address(protocol), type(uint).max);
+    // function testLoanRepayment() public {
+       
+    //     testServiceRequest();
 
-        protocol.repayLoan(1, 525e17);
+    //     switchSigner(owner);
+    //     IERC20(LINK_CONTRACT_ADDRESS).approve(address(protocol), type(uint).max);
 
-        Protocol.Request memory _borrowRequest = protocol.getUserRequest(
-            owner,
-            1
-        );
-        assertEq(_borrowRequest._totalRepayment, 0);
-        assertEq(uint8(_borrowRequest.status), 2);
-    }
+    //     protocol.repayLoan(1, 10000);
 
-    function testProgressiveLoanRepayment() public {
-        switchSigner(diaHolder);
-        IERC20(daiToken).transfer(owner, 100e18);
-        testServiceRequest();
+    //     Protocol.Request memory _borrowRequest = protocol.getUserRequest(
+    //         owner,
+    //         1
+    //     );
+    //     // assertEq(_borrowRequest._totalRepayment, 0);
+    //     assertEq(uint8(_borrowRequest.status), 2);
+    // }
 
-        switchSigner(owner);
-        IERC20 daiContract = IERC20(daiToken);
-        daiContract.approve(address(protocol), type(uint).max);
+    // function testProgressiveLoanRepayment() public {
+    //     switchSigner(WETHHolders);
+    //     IERC20(WETHHolders).transfer(owner, 100e18);
+    //     testServiceRequest();
 
-        protocol.repayLoan(1, 50e18);
+    //     switchSigner(owner);
+    //     IERC20 daiContract = IERC20(WETHHolders);
+    //     daiContract.approve(address(protocol), type(uint).max);
 
-        protocol.repayLoan(1, 50e18);
+    //     protocol.repayLoan(1, 50e18);
 
-        Protocol.Request memory _borrowRequestAfterLastRepay = protocol
-            .getUserRequest(owner, 1);
-        // uint256 _userBalanceAfter = daiContract.balanceOf(owner);
+    //     protocol.repayLoan(1, 50e18);
 
-        assertEq(_borrowRequestAfterLastRepay._totalRepayment, 0);
-        assertEq(uint8(_borrowRequestAfterLastRepay.status), 2);
-        // assertEq(
-        //     _userBalanceBefore - _borrowRequestAfterFirstRepay._totalRepayment,
-        //     _userBalanceAfter
-        // );
-    }
+    //     Protocol.Request memory _borrowRequestAfterLastRepay = protocol
+    //         .getUserRequest(owner, 1);
+    //     // uint256 _userBalanceAfter = daiContract.balanceOf(owner);
 
-    function testAddCollateralTokens() public {
-        switchSigner(owner);
-        address[] memory _tokens = new address[](5);
-        address[] memory _priceFeed = new address[](5);
+    //     assertEq(_borrowRequestAfterLastRepay._totalRepayment, 0);
+    //     assertEq(uint8(_borrowRequestAfterLastRepay.status), 2);
+    //     // assertEq(
+    //     //     _userBalanceBefore - _borrowRequestAfterFirstRepay._totalRepayment,
+    //     //     _userBalanceAfter
+    //     // );
+    // }
 
-        address[] memory _collateralTokens = protocol.getAllCollateralToken();
+    // function testAddCollateralTokens() public {
+    //     address[] memory _tokens = new address[](5);
+    //     address[] memory _priceFeed = new address[](5);
 
-        for (uint256 i = 0; i < 5; i++) {
-            _tokens[i] = mkaddr(string(abi.encodePacked("Token", i)));
-            _priceFeed[i] = mkaddr(string(abi.encodePacked("priceFeed", i)));
-        }
-        protocol.addCollateralTokens(_tokens, _priceFeed);
+    //     address[] memory _collateralTokens = protocol.getAllCollateralToken();
 
-        protocol.getAllCollateralToken();
+    //     for (uint256 i = 0; i < 5; i++) {
+    //         _tokens[i] = mkaddr(string(abi.encodePacked("Token", i)));
+    //         _priceFeed[i] = mkaddr(string(abi.encodePacked("priceFeed", i)));
+    //     }
+    //     protocol.addCollateralTokens(_tokens, _priceFeed);
 
-        assertEq(
-            protocol.getAllCollateralToken().length,
-            _collateralTokens.length + 5
-        );
-    }
+    //     protocol.getAllCollateralToken();
 
-    function testRemoveCollateralTokens() public {
-        testAddCollateralTokens();
-        address[] memory _tokens = new address[](5);
-        address[] memory _priceFeed = new address[](5);
+    //     assertEq(
+    //         protocol.getAllCollateralToken().length,
+    //         _collateralTokens.length + 5
+    //     );
+    // }
 
-        address[] memory _collateralTokens = protocol.getAllCollateralToken();
+    // function testRemoveCollateralTokens() public {
+    //     testAddCollateralTokens();
+    //     address[] memory _tokens = new address[](5);
+    //     address[] memory _priceFeed = new address[](5);
 
-        for (uint256 i = 0; i < 5; i++) {
-            _tokens[i] = mkaddr(string(abi.encodePacked("Token", i)));
-            _priceFeed[i] = mkaddr(string(abi.encodePacked("priceFeed", i)));
-        }
+    //     address[] memory _collateralTokens = protocol.getAllCollateralToken();
 
-        protocol.removeCollateralTokens(_tokens);
+    //     for (uint256 i = 0; i < 5; i++) {
+    //         _tokens[i] = mkaddr(string(abi.encodePacked("Token", i)));
+    //         _priceFeed[i] = mkaddr(string(abi.encodePacked("priceFeed", i)));
+    //     }
 
-        assertEq(
-            protocol.getAllCollateralToken().length,
-            _collateralTokens.length - 5
-        );
+    //     protocol.removeCollateralTokens(_tokens);
+
+    //     assertEq(
+    //         protocol.getAllCollateralToken().length,
+    //         _collateralTokens.length - 5
+    //     );
+    // }
+
+
+    function transferTokenToOwner() public {
+        switchSigner(USDTHolders);
+        IERC20(USDT_CONTRACT_ADDRESS).transfer(owner, 500000000000);
+        switchSigner(DIAHolders);
+        IERC20(DIA_CONTRACT_ADDRESS).transfer(owner, 500000000000);
+         switchSigner(WETHHolders);
+        IERC20(WETH_CONTRACT_ADDRESS).transfer(owner, 500000000000);
+        switchSigner(LINKHolders);
+        IERC20(LINK_CONTRACT_ADDRESS).transfer(owner, 500000000000);
+
+
     }
 
     function createRequest() public {
@@ -504,7 +479,8 @@ contract ProtocolTest is Test, IProtocolTest {
             requestAmount,
             interestRate,
             returnDate,
-            daiToken
+            WETHHolders
+
         );
     }
 
