@@ -31,11 +31,11 @@ contract DeployScript is Script {
 
     //SEPOLIA TESTNET ADDRESSES
     // address daiToken = 0x3e622317f8C93f7328350cF0B56d9eD4C620C5d6;
-    address linkToken = 0x779877A7B0D9E8603169DdbD7836e478b4624789;
+    address linkToken = 0xE4aB69C077896252FAFBD49EFD26B5D171A32410;
     // address USDCToken = 0xf08A50178dfcDe18524640EA6618a1f965821715;
 
-    // address daiPriceFeed = 0xAed0c38402a5d19df6E4c03F4E2DceD6e29c1ee9;
-    address linkPriceFeed = 0xc59E3633BAAC79493d908e63626716e204A45EdF;
+    address daiPriceFeed = 0xD1092a65338d049DB68D7Be6bD89d17a0929945e;
+    address linkPriceFeed = 0xb113F5A928BCfF189C998ab20d753a47F9dE5A61;
     // address usdcPriceFeed = 0xA2F78ab2355fe2f984D808B5CeE7FD0A93D5270E;
     // address WETHPriceFeed = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419; //ETH-USD
 
@@ -77,6 +77,12 @@ contract DeployScript is Script {
         console.log("Governance address", address(governance));
         console.log("Proxy Address", address(proxy));
         console.log("Protocol address", address(implementation));
+
+        Protocol(address(proxy)).addLoanableToken(
+            address(peerToken),
+            daiPriceFeed
+        );
+        console.log("Loanable Token Added");
 
         vm.stopBroadcast();
     }

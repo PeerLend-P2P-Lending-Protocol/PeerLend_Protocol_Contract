@@ -16,12 +16,16 @@ import "./Libraries/Event.sol";
 /// @title The Proxy Contract for the protocol
 /// @author Benjamin Faruna, Favour Aniogor
 /// @notice This uses the EIP1822 UUPS standard from the opwnzeppelin library
-contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, ChainlinkClient {
-        using Chainlink for Chainlink.Request;
+contract Protocol is
+    Initializable,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
+    ChainlinkClient
+{
+    using Chainlink for Chainlink.Request;
     ////////////////////////
     // STATE VARIABLES   //
     //////////////////////
-
 
     /// @dev Our utility Token $PEER TODO: import the PEER Token Contract
     PeerToken private s_PEER;
@@ -45,7 +49,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     /// @dev Collection of all all the resquest;
     Request[] private s_requests;
 
-    address [] allAddress;
+    address[] allAddress;
     /// @dev request id;
     uint96 private requestId;
     uint96 private offerId;
@@ -61,7 +65,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     bytes32 private jobId;
     uint256 private fee;
     uint256 public response;
-    
 
     ///////////////
     /// EVENTS ///
@@ -120,8 +123,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         OfferStatus offerStatus;
     }
 
-
-
     //////////////////
     /// FUNCTIONS ///
     ////////////////
@@ -131,13 +132,13 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     function depositCollateral(
         address _tokenCollateralAddress,
         uint256 _amountOfCollateral
-    )
-        external
-    {
+    ) external {
         Validator._moreThanZero(_amountOfCollateral);
-        Validator._isTokenAllowed(_tokenCollateralAddress,s_priceFeeds);
+        Validator._isTokenAllowed(_tokenCollateralAddress, s_priceFeeds);
         checkIsVerified(msg.sender);
-        s_addressToCollateralDeposited[msg.sender][_tokenCollateralAddress] += _amountOfCollateral;
+        s_addressToCollateralDeposited[msg.sender][
+            _tokenCollateralAddress
+        ] += _amountOfCollateral;
         allAddress.push(msg.sender);
         emit CollateralDeposited(
             msg.sender,
@@ -154,8 +155,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         }
     }
 
-  
-
     /**
      * @notice Creates a request for a loan
      * @param _amount The principal amount of the loan
@@ -169,8 +168,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint8 _interest,
         uint256 _returnDate,
         address _loanCurrency
-    ) external 
-     {
+    ) external {
         Validator._moreThanZero(_amount);
 
         if (!s_isLoanable[_loanCurrency]) {
@@ -191,7 +189,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         ) {
             revert Protocol__InsufficientCollateral();
         }
-// 
+        //
         requestId = requestId + 1;
         Request storage _newRequest = request[msg.sender][requestId];
         _newRequest.requestId = requestId;
@@ -214,7 +212,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
 
     function repayLoan(uint96 _requestId, uint256 _amount) public {
         checkIsVerified(msg.sender);
-        string memory _email = addressToUser[msg.sender].email;
+        // string memory _email = addressToUser[msg.sender].email;
 
         // _sendMailRepayLoan(_email);
         Request storage _foundRequest = request[msg.sender][_requestId];
@@ -264,8 +262,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint8 _interest,
         uint256 _returnedDate,
         address _tokenAddress
-    ) external
-     {
+    ) external {
         Validator._moreThanZero(_amount);
         Validator._moreThanZero(_interest);
 
@@ -282,7 +279,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
             revert Protocol__InvalidToken();
 
         IERC20(_tokenAddress).approve(address(this), _amount);
-        offerId = offerId +1;
+        offerId = offerId + 1;
         Offer memory _offer;
         _offer.offerId = offerId;
         _offer.author = msg.sender;
@@ -375,7 +372,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     /// @dev handle the rejection of an offer
     /// @param _foundOffer the offer being sent
     function _handleRejectedOffer(Offer storage _foundOffer) internal {
-        string memory _email = addressToUser[msg.sender].email;
+        // string memory _email = addressToUser[msg.sender].email;
         // _sendMailRejectOffer(_email);
         _foundOffer.offerStatus = OfferStatus.REJECTED;
     }
@@ -391,7 +388,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     ) external {
         checkIsVerified(msg.sender);
         Request storage _foundRequest = request[_borrower][_requestId];
-        string memory _email = addressToUser[msg.sender].email;
+        // string memory _email = addressToUser[msg.sender].email;
 
         // _sendMailServiceLoan(_email);
         if (_foundRequest.status != Status.OPEN)
@@ -454,10 +451,9 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     function withdrawCollateral(
         address _tokenCollateralAddress,
         uint256 _amount
-    ) external 
-    {
-     Validator._moreThanZero(_amount);   
-     Validator._isTokenAllowed(_tokenCollateralAddress, s_priceFeeds);
+    ) external {
+        Validator._moreThanZero(_amount);
+        Validator._isTokenAllowed(_tokenCollateralAddress, s_priceFeeds);
         checkIsVerified(msg.sender);
         uint256 depositedAmount = s_addressToCollateralDeposited[msg.sender][
             _tokenCollateralAddress
@@ -533,7 +529,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         address _token,
         address _priceFeed
     ) external onlyOwner {
-        checkIsVerified(msg.sender);
         s_isLoanable[_token] = true;
         s_priceFeeds[_token] = _priceFeed;
         s_loanableToken.push(_token);
@@ -547,25 +542,29 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         addressToUser[_user].gitCoinPoint = _score;
     }
 
-     /// @dev for upating git coin post score
+    /// @dev for upating git coin post score
     /// @param _user the address to the user you want to update
     /// @param _email the email address of the user that verified
     /// @param _status the status is to verify that the user is verified
-    function updateEmail(address _user, string memory _email, bool _status) public onlyOwner {
+    function updateEmail(
+        address _user,
+        string memory _email,
+        bool _status
+    ) public onlyOwner {
         addressToUser[_user].isVerified = _status;
         addressToUser[_user].email = _email;
     }
 
-    function checkIsVerified(address _user) private view{
-          if(!addressToUser[_user].isVerified) revert Protocol__EmailNotVerified();
+    function checkIsVerified(address _user) private view {
+        if (!addressToUser[_user].isVerified)
+            revert Protocol__EmailNotVerified();
     }
 
-        // Update oracle address
+    // Update oracle address
     function setOracleAddress(address _oracleAddress) public onlyOwner {
         oracleAddress = _oracleAddress;
         _setChainlinkOracle(_oracleAddress);
     }
-
 
     // Update jobId
     function setJobId(string memory _jobId) public onlyOwner {
@@ -576,12 +575,11 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         fee = _feeInJuels;
     }
 
-    function setFeeInHundredthsOfLink(uint256 _feeInHundredthsOfLink) public onlyOwner {
+    function setFeeInHundredthsOfLink(
+        uint256 _feeInHundredthsOfLink
+    ) public onlyOwner {
         setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
     }
-  
-
-
 
     /////////////////////////////////////////////////////
     ///                                              ///
@@ -589,80 +587,112 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     ///                                             ///
     ///////////////////////////////////////////////////
 
-
-    
-   function _sendEmailOfferRequest(
+    function _sendEmailOfferRequest(
         string memory _userEmail,
         uint256 _amount,
         uint8 _interest,
         uint256 _returnDate
     ) public {
-        Chainlink.Request memory req = _buildOperatorRequest(jobId, this.fulfill.selector);
+        Chainlink.Request memory req = _buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfill.selector
+        );
         // Define the JSON payload
-        string memory payload = string(abi.encode(
-            '{"userEmail":"', _userEmail,
-            '","amount":', _amount,
-            ',"interest":', _interest,
-            ',"returnDate":"', _returnDate,
-            '"}'
-        ));
+        string memory payload = string(
+            abi.encodePacked(
+                '{"userEmail":"',
+                _userEmail,
+                '","amount":',
+                uint2str(_amount),
+                ',"interest":',
+                uint2str(_interest),
+                ',"returnDate":"',
+                uint2str(_returnDate),
+                '"}'
+            )
+        );
         // Define the request parameters
         req._add("method", "POST");
-        req._add("url", "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/createOfferMail");
+        req._add(
+            "url",
+            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/createOfferMail"
+        );
         req._add("headers", '["content-type", "application/json"]');
         req._add("body", payload);
-        
+
         // Send the request to the Chainlink oracle
         _sendOperatorRequest(req, fee);
     }
-
 
     function _sendMailServiceLoan(string memory _email) public {
-
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector);
-        string memory payload = string(abi.encodePacked('{"email":"', _email, '"}'));
+        Chainlink.Request memory req = _buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfill.selector
+        );
+        string memory payload = string(
+            abi.encodePacked('{"email":"', _email, '"}')
+        );
         // Define the request parameters
         req._add("method", "POST");
-        req._add("url", "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/serviceLoanMail");
+        req._add(
+            "url",
+            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/serviceLoanMail"
+        );
         req._add("headers", '["content-type", "application/json"]');
         req._add("body", payload);
         // Send the request to the Chainlink oracle
         _sendOperatorRequest(req, fee);
     }
 
-
     function _sendMailRejectOffer(string memory _email) public {
-
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector); 
-        string memory payload = string(abi.encodePacked('{"email":"', _email, '"}'));
+        Chainlink.Request memory req = _buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfill.selector
+        );
+        string memory payload = string(
+            abi.encodePacked('{"email":"', _email, '"}')
+        );
         req._add("method", "POST");
-        req._add("url", "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/rejectOfferMail");
+        req._add(
+            "url",
+            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/rejectOfferMail"
+        );
         req._add("headers", '["content-type", "application/json"]');
         req._add("body", payload);
-        
+
         // Send the request to the Chainlink oracle
         _sendOperatorRequest(req, fee);
     }
 
     function _sendMailRepayLoan(string memory _email) public {
-
-        Chainlink.Request memory req = _buildChainlinkRequest(jobId, address(this), this.fulfill.selector); 
-        string memory payload = string(abi.encodePacked('{"email":"', _email, '"}'));
+        Chainlink.Request memory req = _buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfill.selector
+        );
+        string memory payload = string(
+            abi.encodePacked('{"email":"', _email, '"}')
+        );
         req._add("method", "POST");
-        req._add("url", "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/repayLoan");
+        req._add(
+            "url",
+            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/repayLoan"
+        );
         req._add("headers", '["content-type", "application/json"]');
         req._add("body", payload);
-        
+
         // Send the request to the Chainlink oracle
         _sendOperatorRequest(req, fee);
     }
-    
-
-
-
 
     // Callback function
-    function fulfill(bytes32 _requestId, uint256 _data) public recordChainlinkFulfillment(_requestId) {
+    function fulfill(
+        bytes32 _requestId,
+        uint256 _data
+    ) public recordChainlinkFulfillment(_requestId) {
         response = _data;
     }
 
@@ -681,15 +711,13 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         uint256 k = length;
         while (_i != 0) {
             k = k - 1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
             bytes1 b1 = bytes1(temp);
             bstr[k] = b1;
             _i /= 10;
         }
         return string(bstr);
     }
-
-
 
     ///////////////////////
     /// VIEW FUNCTIONS ///
@@ -704,42 +732,39 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         _score = addressToUser[_user].gitCoinPoint;
     }
 
-
     function getAllRequest() external view returns (Request[] memory) {
-    if (requestId < 1) revert Protocol__InvalidId();
-    if (allAddress.length < 1) revert Protocol__InvalidId();
+        if (requestId < 1) revert Protocol__InvalidId();
+        if (allAddress.length < 1) revert Protocol__InvalidId();
 
-    uint totalRequests = 0;
+        uint totalRequests = 0;
 
-    // Count the total number of requests
-    for (uint i = 0; i < allAddress.length; i++) {
-        for (uint96 j = 0; j <= requestId; j++) {
-            if (request[allAddress[i]][j].author != address(0)) {
-                totalRequests++;
+        // Count the total number of requests
+        for (uint i = 0; i < allAddress.length; i++) {
+            for (uint96 j = 0; j <= requestId; j++) {
+                if (request[allAddress[i]][j].author != address(0)) {
+                    totalRequests++;
+                }
             }
         }
-    }
 
-    // Initialize the array with the total number of requests
-    Request[] memory _userRequests = new Request[](totalRequests);
-    uint index = 0;
+        // Initialize the array with the total number of requests
+        Request[] memory _userRequests = new Request[](totalRequests);
+        uint index = 0;
 
-    // Populate the array with all requests
-    for (uint i = 0; i < allAddress.length; i++) {
-        for (uint96 j = 0; j <= requestId; j++) {
-            if (request[allAddress[i]][j].author != address(0)) {
-                _userRequests[index] = request[allAddress[i]][j];
-                index++;
+        // Populate the array with all requests
+        for (uint i = 0; i < allAddress.length; i++) {
+            for (uint96 j = 0; j <= requestId; j++) {
+                if (request[allAddress[i]][j].author != address(0)) {
+                    _userRequests[index] = request[allAddress[i]][j];
+                    index++;
+                }
             }
         }
+
+        return _userRequests;
     }
 
-    return _userRequests;
-}
-
-        
-        
-/// @notice Checks the health Factor which is a way to check if the user has enough collateral to mint
+    /// @notice Checks the health Factor which is a way to check if the user has enough collateral to mint
     /// @param _user a parameter for the address to check
     /// @return uint256 returns the health factor which is supoose to be >= 1
     function _healthFactor(address _user) private view returns (uint256) {
@@ -804,12 +829,13 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     /// @param _borrower the user who is trying to borrow
     /// @param _requestId the id of the request you are trying to get the offers from
     /// @return {Offer[] memory} the collection of offers made
-    function getAllOfferForUser(address _borrower, uint96 _requestId) external view returns (Offer[] memory) {
+    function getAllOfferForUser(
+        address _borrower,
+        uint96 _requestId
+    ) external view returns (Offer[] memory) {
         Request storage _foundRequest = request[_borrower][_requestId];
         return _foundRequest.offer;
     }
-
-
 
     /// @dev gets the amount of collateral auser has deposited
     /// @param _sender the user who has the collateral
@@ -821,8 +847,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     ) external view returns (uint256) {
         return s_addressToCollateralDeposited[_sender][_tokenAddr];
     }
-
-
 
     function getRequestById(
         uint96 _requestId
@@ -866,7 +890,7 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
     ) external view returns (Request memory) {
         return request[_user][_requestId];
     }
-       // Update fees
+    // Update fees
 
     /// @notice This gets the account info of any account
     /// @param _user a parameter for the user account info you want to get
@@ -907,7 +931,6 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
         address[] memory _tokens,
         address[] memory _priceFeeds,
         address _peerAddress
-
     ) public initializer {
         __Ownable_init(_initialOwner);
         if (_tokens.length != _priceFeeds.length) {
@@ -919,23 +942,25 @@ contract Protocol is Initializable, OwnableUpgradeable, UUPSUpgradeable, Chainli
             s_collateralToken.push(_tokens[i]);
         }
         s_PEER = PeerToken(_peerAddress);
-         _setChainlinkToken(0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8);
+        _setChainlinkToken(0xE4aB69C077896252FAFBD49EFD26B5D171A32410);
+        setOracleAddress(0xa57f0cEd49bB1ed7327f950B12a8419cFD01855f);
+        _setChainlinkToken(0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8);
         setOracleAddress(0x14bc7F6Da6cA3E072793c185e01a76E62341CC61);
         setJobId("a8356f48569c434eaa4ac5fcb4db5cc0");
-        setFeeInHundredthsOfLink(0); 
+        setFeeInHundredthsOfLink(0);
     }
     /// @dev Assist with upgradable proxy
     /// @param {address} a parameter just like in doxygen (must be followed by parameter name)
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
-// interface Protocol {
-//     function depositCollateral();
-//     function redeemCollateral();
-//     function createRequest();
-//     function createOffer();
+    // interface Protocol {
+    //     function depositCollateral();
+    //     function redeemCollateral();
+    //     function createRequest();
+    //     function createOffer();
 
-//     function serliquidateUserviceRequest();
-//     function ();
-//     function tokenCollateral();
-// }
+    //     function serliquidateUserviceRequest();
+    //     function ();
+    //     function tokenCollateral();
+    // }
 }
