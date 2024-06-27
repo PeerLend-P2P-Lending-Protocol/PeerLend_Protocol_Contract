@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {Validator} from "./Libraries/Validator.sol";
-import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import {PeerToken} from "./PeerToken.sol";
 import "./Libraries/Constant.sol";
 import "./Libraries/Errors.sol";
@@ -19,10 +18,8 @@ import "./Libraries/Event.sol";
 contract Protocol is
     Initializable,
     OwnableUpgradeable,
-    UUPSUpgradeable,
-    ChainlinkClient
+    UUPSUpgradeable
 {
-    using Chainlink for Chainlink.Request;
     ////////////////////////
     // STATE VARIABLES   //
     //////////////////////
@@ -61,10 +58,7 @@ contract Protocol is
 
     mapping(address => uint256) private amountLoaned;
 
-    address private oracleAddress;
-    bytes32 private jobId;
-    uint256 private fee;
-    uint256 public response;
+
 
     ///////////////
     /// EVENTS ///
@@ -267,9 +261,8 @@ contract Protocol is
         Validator._moreThanZero(_interest);
 
         checkIsVerified(msg.sender);
-        string memory _email = addressToUser[msg.sender].email;
+        // string memory _email = addressToUser[msg.sender].email;
 
-        _sendEmailOfferRequest(_email, _amount, _interest, _returnedDate);
         Request storage _foundRequest = request[_borrower][_requestId];
         if (_foundRequest.status != Status.OPEN)
             revert Protocol__RequestNotOpen();
@@ -550,7 +543,7 @@ contract Protocol is
         address _user,
         string memory _email,
         bool _status
-    ) public onlyOwner {
+    ) public  {
         addressToUser[_user].isVerified = _status;
         addressToUser[_user].email = _email;
     }
@@ -560,164 +553,28 @@ contract Protocol is
             revert Protocol__EmailNotVerified();
     }
 
-    // Update oracle address
-    function setOracleAddress(address _oracleAddress) public onlyOwner {
-        oracleAddress = _oracleAddress;
-        _setChainlinkOracle(_oracleAddress);
+
+    function isVerified(address _user) external view returns (bool){
+        return addressToUser[_user].isVerified;
     }
 
-    // Update jobId
-    function setJobId(string memory _jobId) public onlyOwner {
-        jobId = bytes32(bytes(_jobId));
+
+    function getUserEmail(address _user) external view returns(string memory) {
+        return addressToUser[_user].email;
     }
 
-    function setFeeInJuels(uint256 _feeInJuels) public onlyOwner {
-        fee = _feeInJuels;
-    }
 
-    function setFeeInHundredthsOfLink(
-        uint256 _feeInHundredthsOfLink
-    ) public onlyOwner {
-        setFeeInJuels((_feeInHundredthsOfLink * LINK_DIVISIBILITY) / 100);
-    }
-
+  
     /////////////////////////////////////////////////////
     ///                                              ///
     ///   CHAINLINK NODE ADAPTER EMAIL API TRIGGER  ////
     ///                                             ///
     ///////////////////////////////////////////////////
 
-    function _sendEmailOfferRequest(
-        string memory _userEmail,
-        uint256 _amount,
-        uint8 _interest,
-        uint256 _returnDate
-    ) public {
-        Chainlink.Request memory req = _buildChainlinkRequest(
-            jobId,
-            address(this),
-            this.fulfill.selector
-        );
-        // Define the JSON payload
-        string memory payload = string(
-            abi.encodePacked(
-                '{"userEmail":"',
-                _userEmail,
-                '","amount":',
-                uint2str(_amount),
-                ',"interest":',
-                uint2str(_interest),
-                ',"returnDate":"',
-                uint2str(_returnDate),
-                '"}'
-            )
-        );
-        // Define the request parameters
-        req._add("method", "POST");
-        req._add(
-            "url",
-            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/createOfferMail"
-        );
-        req._add("headers", '["content-type", "application/json"]');
-        req._add("body", payload);
+    
 
-        // Send the request to the Chainlink oracle
-        _sendOperatorRequest(req, fee);
-    }
+ 
 
-    function _sendMailServiceLoan(string memory _email) public {
-        Chainlink.Request memory req = _buildChainlinkRequest(
-            jobId,
-            address(this),
-            this.fulfill.selector
-        );
-        string memory payload = string(
-            abi.encodePacked('{"email":"', _email, '"}')
-        );
-        // Define the request parameters
-        req._add("method", "POST");
-        req._add(
-            "url",
-            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/serviceLoanMail"
-        );
-        req._add("headers", '["content-type", "application/json"]');
-        req._add("body", payload);
-        // Send the request to the Chainlink oracle
-        _sendOperatorRequest(req, fee);
-    }
-
-    function _sendMailRejectOffer(string memory _email) public {
-        Chainlink.Request memory req = _buildChainlinkRequest(
-            jobId,
-            address(this),
-            this.fulfill.selector
-        );
-        string memory payload = string(
-            abi.encodePacked('{"email":"', _email, '"}')
-        );
-        req._add("method", "POST");
-        req._add(
-            "url",
-            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/rejectOfferMail"
-        );
-        req._add("headers", '["content-type", "application/json"]');
-        req._add("body", payload);
-
-        // Send the request to the Chainlink oracle
-        _sendOperatorRequest(req, fee);
-    }
-
-    function _sendMailRepayLoan(string memory _email) public {
-        Chainlink.Request memory req = _buildChainlinkRequest(
-            jobId,
-            address(this),
-            this.fulfill.selector
-        );
-        string memory payload = string(
-            abi.encodePacked('{"email":"', _email, '"}')
-        );
-        req._add("method", "POST");
-        req._add(
-            "url",
-            "https://email-service-backend-1.onrender.com/swagger-ui/index.html#/offer-controller/repayLoan"
-        );
-        req._add("headers", '["content-type", "application/json"]');
-        req._add("body", payload);
-
-        // Send the request to the Chainlink oracle
-        _sendOperatorRequest(req, fee);
-    }
-
-    // Callback function
-    function fulfill(
-        bytes32 _requestId,
-        uint256 _data
-    ) public recordChainlinkFulfillment(_requestId) {
-        response = _data;
-    }
-
-    // Helper function to convert uint256 to string
-    function uint2str(uint256 _i) internal pure returns (string memory) {
-        if (_i == 0) {
-            return "0";
-        }
-        uint256 j = _i;
-        uint256 length;
-        while (j != 0) {
-            length++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(length);
-        uint256 k = length;
-        while (_i != 0) {
-            k = k - 1;
-            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
-    }
 
     ///////////////////////
     /// VIEW FUNCTIONS ///
@@ -907,13 +764,7 @@ contract Protocol is
         _collateralValueInUsd = getAccountCollateralValue(_user);
     }
 
-    function getOracleAddress() public view onlyOwner returns (address) {
-        return oracleAddress;
-    }
-
-    function getJobId() public view onlyOwner returns (string memory) {
-        return string(abi.encodePacked(jobId));
-    }
+ 
 
     /// @return _assets the collection of token that can be loaned in the protocol
     function getLoanableAssets()
@@ -942,12 +793,7 @@ contract Protocol is
             s_collateralToken.push(_tokens[i]);
         }
         s_PEER = PeerToken(_peerAddress);
-        _setChainlinkToken(0xE4aB69C077896252FAFBD49EFD26B5D171A32410);
-        setOracleAddress(0xa57f0cEd49bB1ed7327f950B12a8419cFD01855f);
-        _setChainlinkToken(0xCEFc1C9af894a9dFBF763A394E6588b0b4D9a5a8);
-        setOracleAddress(0x14bc7F6Da6cA3E072793c185e01a76E62341CC61);
-        setJobId("a8356f48569c434eaa4ac5fcb4db5cc0");
-        setFeeInHundredthsOfLink(0);
+     
     }
     /// @dev Assist with upgradable proxy
     /// @param {address} a parameter just like in doxygen (must be followed by parameter name)
