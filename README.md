@@ -1,5 +1,8 @@
 ### PeerLend: Revolutionizing Decentralized P2P Lending and Borrowing
 
+![PeerLend LOGO](image/logo.jpeg)
+
+
 ## Inspiration
 
 In the rapidly evolving world of decentralized finance (_DeFi_), platforms like **Aave** and **Compound** have paved the way for accessible borrowing and lending. However, these platforms often leave users feeling constrained. Borrowers are subjected to inflexible interest rates and limited options, while lenders lack the assurance of truly personalized engagements. **What if there was a way to revolutionize this space, giving users unprecedented control and flexibility over their financial transactions?** This question sparked the creation of **PeerLend**.
@@ -31,7 +34,7 @@ Building **PeerLend** required leveraging the latest technologies and integratin
 - **Chainlink Automation**: We used **Chainlink automation** for managing the liquidation process, ensuring collateral is automatically liquidated when the health factor drops below 1.
 - **Gemini AI**: Integrated AI functionalities to personalize user experiences and generate content.
 ## System design
-![PeerLend Homepage](image/Screenshot%20from%202024-06-28%2022-41-35.png)
+![PeerLend SystemDesign](image/Screenshot%20from%202024-06-28%2022-41-35.png)
 
 
 ## Challenges We Ran Into
