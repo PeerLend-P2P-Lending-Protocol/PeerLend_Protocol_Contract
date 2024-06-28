@@ -1,6 +1,6 @@
 ### PeerLend: Revolutionizing Decentralized P2P Lending and Borrowing
 
-![PeerLend LOGO](image/logo.jpeg)
+<img src="image/logo.jpeg" alt="peerlend Logo" />
 
 
 ## Inspiration
@@ -34,7 +34,7 @@ Building **PeerLend** required leveraging the latest technologies and integratin
 - **Chainlink Automation**: We used **Chainlink automation** for managing the liquidation process, ensuring collateral is automatically liquidated when the health factor drops below 1.
 - **Gemini AI**: Integrated AI functionalities to personalize user experiences and generate content.
 ## System design
-![PeerLend SystemDesign](image/Screenshot%20from%202024-06-28%2022-41-35.png)
+<img src="image/Screenshot from 2024-06-28 22-41-35.png" alt="PeerLend system design" />
 
 
 ## Challenges We Ran Into
@@ -74,7 +74,7 @@ We have ambitious plans for the future of **PeerLend**, aiming to continuously i
 
 ## PeerLend: Revolutionizing Decentralized P2P Lending and Borrowing
 
-![PeerLend Homepage](image/WhatsApp%20Image%202024-06-28%20at%2010.46.29%20PM.jpeg)
+<img src="image/WhatsApp Image 2024-06-28 at 10.46.29 PM.jpeg" alt="peerlend homepage" />
 
 ## Overview
 
